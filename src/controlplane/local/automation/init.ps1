@@ -1,4 +1,4 @@
-param($clusterName = 'kind')
+$clusterName = 'kind'
 
 kind create cluster --config "$psscriptroot/../kind.yaml" --wait 5m --name $clusterName
 
