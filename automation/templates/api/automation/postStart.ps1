@@ -1,0 +1,1 @@
+# place custom automation you'd like to run after Start-Wcproject here.

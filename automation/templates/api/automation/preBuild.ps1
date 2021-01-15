@@ -1,0 +1,1 @@
+# Anything that you want to occur before Build-Wcproject, place here.

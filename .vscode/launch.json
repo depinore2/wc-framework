@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "address": "172.17.0.1",
+      "localRoot": "${workspaceFolder}/src/matches-api/src",
+      "name": "Debug matches-api",
+      "port": 30000,
+      "remoteRoot": "/app/src",
+      "request": "attach",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "preLaunchTask": "start-wcproject matches-api",
+      "type": "node"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mocha Tests",
+      "preLaunchTask": "Build Test Project",
+      "program": "${workspaceFolder}/test/node_modules/mocha/bin/_mocha",
+      "args": [
+        "-u",
+        "tdd",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/test/src/**/*.js"
+      ],
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**/*.js",
+        "${workspaceFolder}/node_modules/**/*.js",
+        "${workspaceFolder}/lib/**/*.js"
+      ],
+      "sourceMaps": true
+    }
+  ]
+}

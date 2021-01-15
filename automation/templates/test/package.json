@@ -1,0 +1,22 @@
+{
+    "name": "test",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "test": "mocha src/**/*.js src/*.js --timeout 60000",
+      "start": "npm t"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "mocha": "^5.2.0"
+    },
+    "devDependencies": {
+      "@types/mocha": "5.2.7",
+      "@types/node": "^13.1.7",
+      "typescript": "^3.7.5"
+    }
+  }
+  

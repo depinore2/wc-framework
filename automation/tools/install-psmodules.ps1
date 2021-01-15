@@ -1,0 +1,1 @@
+install-module powershell-yaml -force

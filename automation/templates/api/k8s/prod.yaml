@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: _REPLACE_ME_-deployment
+  labels:
+    app: _REPLACE_ME_
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: _REPLACE_ME_
+  template:
+    metadata:
+      labels:
+        app: _REPLACE_ME_
+    spec:
+      containers:
+      - name: _REPLACE_ME_
+        image: INSERT_REPOSITORY_HERE/_REPLACE_ME_:latest
+        env:
+        - name: APP_NAME
+          value: _REPLACE_ME_
+        ports:
+        - containerPort: 80
+      # imagePullSecrets:
+      # - name: if a private docker image, configure your cluster with a secret and place the name of that secret here.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: _REPLACE_ME_-service
+spec:
+  selector:
+    app: _REPLACE_ME_
+  ports:
+      # By default and for convenience, the `targetPort` is set to the same value as the `port` field.
+    - port: 80
+      # Optional field
+      # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
+      #nodePort: 30007
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: _REPLACE_ME_-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    cert-manager.io/cluster-issuer: "letsencrypt"
+spec:
+  tls:
+    # REQUIRED
+    # - hosts:
+    #  - my.hostname.com  # place the hostname of your production application here.
+    #  secretName: _REPLACE_ME_-tls-secret
+  rules:
+  - http:
+      paths:
+      - path: /_REPLACE_ME_/?(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: _REPLACE_ME_-service
+            port:
+              number: 80

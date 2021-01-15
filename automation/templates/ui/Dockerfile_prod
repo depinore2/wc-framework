@@ -1,0 +1,5 @@
+FROM nginx:1.19
+
+# assumes that you ran export-prodassets before containerizing the assets.
+COPY dist_prod /usr/share/nginx/html
+COPY nginx/prod.conf /etc/nginx/nginx.conf
