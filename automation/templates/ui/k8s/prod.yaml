@@ -16,11 +16,11 @@ spec:
     spec:
       containers:
       - name: _REPLACE_ME_
-        image: edgargbg/_REPLACE_ME_:latest
+        image: #my-repo-here/_REPLACE_ME_:latest
         ports:
         - containerPort: 80
-      imagePullSecrets:
-      - name: edgargbg
+      #imagePullSecrets:
+      #- name: my-repo-secret-here
 ---
 apiVersion: v1
 kind: Service
