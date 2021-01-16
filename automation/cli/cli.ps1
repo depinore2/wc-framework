@@ -1,3 +1,6 @@
+# Use this script to open an interactive session into your local development k8s cluster.
+# This image comes prebuilt with powershell and mongo.  Update the Dockerfile in this same folder if you want to have it load additional stuff for you.
+# Note: this is specifically for local debugging and will not function on a remote cluster.
 param([string]$cmd)
 
 $imageName = 'wc-cli'
