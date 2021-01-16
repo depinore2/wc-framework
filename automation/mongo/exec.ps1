@@ -13,6 +13,7 @@ if($authenticationDatabase) {
     $cmd = "$cmd --authenticationDatabase '$authenticationDatabase'"
 }
 
-Write-Verbose "exec.ps1: $cmd";
+$output = kubectl run -it --rm --restart=Never "mongo-cli-$((get-date).Ticks)" --image=mongo -- bash -c "echo ===cmdoutput=== && $cmd && echo ===/cmdoutput==="
+$output = [string]::Join("`n", $output);
 
-& "$psscriptroot/../cli/cli.ps1" -cmd $cmd -verbose:$verbose;
+$output -replace '(?ms).*===cmdoutput===', '' -replace '(?ms)===/cmdoutput===.*','';

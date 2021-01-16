@@ -1,0 +1,67 @@
+# Unlike local development, it is recommended to use dynamically-provisioned PersistentVolumes via some kind of block storage.
+# Every cloud provider does it a little differently; refer to their documentation before applying this manifest.
+# AWS            https://docs.aws.amazon.com/eks/latest/userguide/storage-classes.html  
+# Azure          https://docs.microsoft.com/en-us/azure/aks/concepts-storage
+# GCP            https://cloud.google.com/kubernetes-engine/docs/concepts/storage-overview
+# Digital Ocean  https://www.digitalocean.com/docs/kubernetes/how-to/add-volumes/ 
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  labels:
+    name: mongo
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  clusterIP: None  # this makes this service a 'Headless Service'
+  selector:
+    app: mongo
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+spec:
+  selector:
+    matchLabels:
+      app: mongo
+  serviceName: mongo
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo
+          env:
+          - name: MONGO_INITDB_ROOT_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-initdb-root-secret
+                key: username
+          - name: MONGO_INITDB_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-initdb-root-secret
+                key: password
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+      terminationGracePeriodSeconds: 10
+  # unlike the local configuration of mongodb, we're using dynamically-provisioned PVs via cloud provider integration
+  volumeClaimTemplates:
+  - metadata:
+      name: mongo-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi  # example size (probably need more than this! lol)
+      storageClassName: # do-block-storage # replace this as necessary based on your cloud provider.  This example uses a digital ocean configuration.
