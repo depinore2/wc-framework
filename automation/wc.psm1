@@ -249,9 +249,11 @@ function Restore-WcProject($projectName) {
     restore-tsmodules $project.name;
   }
 }
-
 function Get-WcSln() {
-  get-content $slnLocation | convertfrom-json;
+  $sln = get-content $slnLocation | convertfrom-json;
+  $sln.projects = [array]($sln.projects);
+
+  $sln;
 }
 function Update-WcSln($sln) {
   $sln | convertto-json -depth 99 | out-file $slnLocation -force;
