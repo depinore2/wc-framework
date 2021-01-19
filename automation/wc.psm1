@@ -28,15 +28,6 @@ function Add-MongoSecrets($projectName) {
             $env = [System.Collections.ArrayList]@();
           }
 
-          <#
-          
-                  - name: MONGO_SERVER
-          value: mongo.0-mongo
-        - name: MONGO_DB
-          value: _REPLACE_ME_
-          
-          #>
-
           $env.Add([PSCustomObject]@{ 
             name = 'MONGO_USERNAME';
             valueFrom = @{
@@ -249,6 +240,7 @@ function Restore-WcProject($projectName) {
     restore-tsmodules $project.name;
   }
 }
+
 function Get-WcSln() {
   $sln = get-content $slnLocation | convertfrom-json;
   $sln.projects = [array]($sln.projects);
@@ -606,15 +598,17 @@ function Start-WcProject([parameter(Mandatory=$true)]$projectName, [switch]$skip
 
         foreach($podName in $podNames) {
           Write-Output "kubectl delete $podname"
-          kubectl delete $podName;
+          kubectl delete $podName -n (get-wcsln).Name;
         }
 
         $yamlPath = resolve-path "$projectpath/k8s/local.yaml"
-        Write-Output "kubectl apply -f $yamlPath"
-        kubectl apply -f $yamlpath
+        $sln = (get-wcsln).name;
+        $cmd = "kubectl apply -f $yamlpath -n $sln";
+        Write-Output $cmd
+        iex $cmd;
 
         $deploymentName = "$($project.name)-deployment";
-        kubectl rollout restart deployment $deploymentName;
+        kubectl rollout restart deployment $deploymentName -n (get-wcsln).name;
       }
       elseif($project.type -eq 'test') {
         $projectpath = (get-absoluteprojectpath $project.name) -replace '\\','/'
@@ -652,7 +646,7 @@ function Remove-Wcproject($name, [switch]$force) {
   if($continue) {
     $k8sResources = get-KubernetesResources $name;
     foreach($resource in $k8sresources) {
-      kubectl delete $resource.kind $resource.name;
+      kubectl delete $resource.kind $resource.name -n (get-wcsln).name;
     }
     remove-item (get-absoluteprojectpath $name) -recurse -force;
     disconnect-wcproject $name;

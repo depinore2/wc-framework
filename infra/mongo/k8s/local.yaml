@@ -1,24 +1,24 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: localdev-volume
+  name: _SOLUTION_NAME_-localdev-volume
   labels:
     type: local
 spec:
-  storageClassName: localdev
+  storageClassName: _SOLUTION_NAME_-localdev
   capacity:
     storage: 10Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/mongodata"  # this assumes that there's a directory 'mongodata' on the kind control plane node. /mongodata is created as part of the controlplane init automation.
+    path: "/mongodata/_SOLUTION_NAME_"  # this assumes that there's a directory 'mongodata' on the kind control plane node. /mongodata is created as part of the controlplane init automation.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: localdev-claim
+  name: _SOLUTION_NAME_-localdev-claim
 spec:
-  storageClassName: localdev # this comes from /k8s/local/dev-volume.yaml
+  storageClassName: _SOLUTION_NAME_-localdev
   accessModes:
     - ReadWriteOnce
   resources:
@@ -57,7 +57,7 @@ spec:
       volumes:
       - name: localdev-storage
         persistentVolumeClaim:
-          claimName: localdev-claim
+          claimName: _SOLUTION_NAME_-localdev-claim
       terminationGracePeriodSeconds: 10
       containers:
       - name: mongo

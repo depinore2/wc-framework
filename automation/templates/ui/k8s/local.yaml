@@ -49,7 +49,7 @@ spec:
   rules:
   - http:
       paths:
-      - path: /_REPLACE_ME_/?(.*)
+      - path: /_SOLUTION_NAME_/_REPLACE_ME_/?(.*)
         pathType: Prefix
         backend:
           service:
