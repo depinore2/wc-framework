@@ -375,6 +375,47 @@ function Clear-WcProject([string]$projectName) {
   }
 }
 
+
+function Sync-DevPod([string]$projectName) {
+  $project = get-wcproject $projectName;
+  if($project) {
+    $source = get-absoluteprojectpath $project.Name;
+    $destination = if($project.Type -eq 'ui') { '/usr/share/nginx/html' } else { '/app' }
+    
+    $pods = kubectl get pods | % { (-split $_)[0] } | where { $_ -match "$projectName-deployment*" }
+    $itemsToPush = get-childitem -path $source | select -expandproperty fullname;
+
+    [Array]$cmds = @();
+
+    foreach($pod in $pods) {
+      foreach($item in $itemsToPush) {
+        $cmds += "kubectl cp $item $($pod):$destination"
+      }
+    }
+
+    $numCpus = (cat /proc/cpuinfo | grep processor | wc -l);
+
+    if(!$verbose) {
+      Write-Host "[$((get-date).ToString('T'))] Pushing files to running pods..." -NoNewLine
+    }
+
+    $cmds | invoke-parallel { 
+      if($verbose) {
+        Write-Output $_;
+      }
+      iex $_;
+    } -throttlelimit $numCpus -noprogress;
+
+    if(!$verbose) {
+      Write-Host "done."
+    }
+  }  
+  else {
+    throw "Unable to find project $projectName.";
+  }  
+}
+
+
 $defaultBuildNumber = '--buildnumber--';
 function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimize, [int32]$msPauseForIO = 0, [switch]$skipNpm, $dockerfile, [ScriptBlock]$preContainerActions) {
   $projects = if($projectName) { @(get-wcproject $projectName) } else { (get-wcsln).Projects };
@@ -390,13 +431,15 @@ function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimiz
         }
       }
       function Containerize() {
-        if($preContainerActions) {
-          Write-Output "Executing custom actions before sending files into its container."
-          &$preContainerActions;
+        if(!$skipContainer) {
+          if($preContainerActions) {
+            Write-Output "Executing custom actions before sending files into its container."
+            &$preContainerActions;
+          }
+          $df = if(!$dockerFile) { "$projectpath/Dockerfile" } else { $dockerFile }
+          Write-Output "Packaging project into a container using $df."
+          docker build $projectPath -f $df -t "$(create-projectprefix $project.name):local" --no-cache
         }
-        $df = if(!$dockerFile) { "$projectpath/Dockerfile" } else { $dockerFile }
-        Write-Output "Packaging project into a container using $df."
-        docker build $projectPath -f $df -t "$(create-projectprefix $project.name):local" --no-cache
       }
 
       $preBuildPath = "$projectpath/automation/preBuild.ps1";
@@ -563,6 +606,23 @@ function Export-ProdAssets([parameter(Mandatory=$true)][string]$projectName, $bu
 function Create-ProjectPrefix($projectName) {
   "wc_$((get-wcsln).Name)_$($projectName)";
 }
+function Watch-Wcproject([parameter(Mandatory=$true)]$projectName) {
+  $project = get-wcproject $projectName;
+
+  if($project) {
+    if($project.type -eq 'api' -or $project.type -eq 'ui') {
+      $path = get-absoluteprojectpath $project.name;
+      while($true) {
+        get-childitem -recurse -path $path -exclude '*.d.ts','.*.d.ts.map','*.js' |
+          select -expandproperty fullname |
+          entr -d -s "pwsh -c 'import-module $psscriptroot/wc.psm1; build-wcproject $($project.name) -skipcontainer; sync-devpod $($project.name)'"
+      }
+    }
+    else {
+      throw "Only API or UI projects are watchable, as they are the only ones that run in a container.";
+    }
+  }
+}
 function Start-WcProject([parameter(Mandatory=$true)]$projectName, [switch]$skipBuild, $customBuildBlock) {
   $project = get-wcproject $projectName;
 
@@ -653,4 +713,4 @@ function Remove-Wcproject($name, [switch]$force) {
   }
 }
 
-Export-ModuleMember New-WcProject, Connect-WcProject, Add-TsModule, Remove-Wcproject, Disconnect-WcProject, Get-WcSln, Restore-WcProject, Restore-Npm, Restore-TsModules, Build-WcProject, Get-WcProject, Export-ProdAssets, Start-WcProject, Clear-WcProject, Get-KubernetesResources, Add-MongoSecrets;
+Export-ModuleMember New-WcProject, Connect-WcProject, Add-TsModule, Remove-Wcproject, Watch-Wcproject, Sync-Devpod, Disconnect-WcProject, Get-WcSln, Restore-WcProject, Restore-Npm, Restore-TsModules, Build-WcProject, Get-WcProject, Export-ProdAssets, Start-WcProject, Clear-WcProject, Get-KubernetesResources, Add-MongoSecrets;
