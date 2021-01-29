@@ -417,7 +417,7 @@ function Sync-DevPod([string]$projectName) {
 
 
 $defaultBuildNumber = '--buildnumber--';
-function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimize, [int32]$msPauseForIO = 0, [switch]$skipNpm, $dockerfile, [ScriptBlock]$preContainerActions) {
+function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimize, [int32]$msPauseForIO = 0, [switch]$skipNpm, $dockerfile, [switch]$skipContainer, [ScriptBlock]$preContainerActions) {
   $projects = if($projectName) { @(get-wcproject $projectName) } else { (get-wcsln).Projects };
 
   foreach($project in [array]($projects)) {
