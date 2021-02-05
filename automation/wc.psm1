@@ -421,6 +421,7 @@ function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimiz
   $projects = if($projectName) { @(get-wcproject $projectName) } else { (get-wcsln).Projects };
 
   foreach($project in [array]($projects)) {
+    $projectPath = get-absoluteprojectpath $project.name;
     if(IsValidProjectType $project.type) {
       function BasicCompile() {
         Write-Output "====Compiling TypeScript===="
@@ -449,8 +450,6 @@ function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimiz
       }
 
       Write-Host "Building [$($project.name)].";
-      $projectPath = get-absoluteprojectpath $project.name;
-
       restore-tsmodules $projectname -skipnpm:$skipnpm;
 
       if($project.type -ne 'ui' -and $optimize) {
