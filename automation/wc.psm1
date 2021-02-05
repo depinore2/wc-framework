@@ -499,7 +499,7 @@ function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimiz
         BasicCompile;
       }
 
-      $postBuildPath = "$projectpath/automation/preBuild.ps1";
+      $postBuildPath = "$projectpath/automation/postBuild.ps1";
       if(test-path $postBuildPath) {
         Write-Output "Executing $postBuildPath."
         & $postBuildPath;
