@@ -82,7 +82,11 @@ API and UI projects come with kubernetes manifest files pre-configured to deploy
 
 For example, if you have an api called `my-great-api`, on `Start-Wcproject my-great-api`, you can access it via `http://localhost/my-great-api`.  This pattern holds true for UI projects as well.
 
-You can 
+
+## Powershell Cmdlet Help ##
+After importing the wc powershell module, please acquaint yourself with the various commands using `get-help` ([Microsoft Documentation](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-help?view=powershell-7.1)).
+The most commonly-used commands are `start-wcproject`, `new-wcproject`, `watch-wcproject`, and `remove-wcproject`.  Start there!
+
 
 ## ts_modules ##
 
@@ -281,10 +285,6 @@ When you build `my-project`, the resulting ts_module structure will be:
       ts_modules/
 
 ```
-
-## Powershell Cmdlet Help ##
-After importing the wc powershell module, please acquaint yourself with the various commands using `get-help` ([Microsoft Documentation](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-help?view=powershell-7.1)).
-The most commonly-used commands are `start-wcproject`, `new-wcproject`, `watch-wcproject`, and `remove-wcproject`.  Start there!
 
 ## Automation Hooks ##
 `build-wcproject` and `start-wcproject` support the ability to inject cutom automation before and after the build and "start" steps of the automation pipeline.  
