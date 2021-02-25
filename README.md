@@ -282,5 +282,42 @@ When you build `my-project`, the resulting ts_module structure will be:
 
 ```
 
+## Powershell Cmdlet Help ##
+After importing the wc powershell module, please acquaint yourself with the various commands using `get-help` ([Microsoft Documentation](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-help?view=powershell-7.1)).
+The most commonly-used commands are `start-wcproject`, `new-wcproject`, `watch-wcproject`, and `remove-wcproject`.  Start there!
+
+## MongoDB Integration ##
+This framework comes with some mongodb integration out of the box.  
+
+### Bootstrapping MongoDB ### 
+First thing you want to do is spin up a mongodb database that your microservices can utilize by running `/infra/mongo/automation/init.ps1`.  
+
+You will need to provide it with an administrator username and password, and a configuration name that indicates which YAML configuration file it should use to configure it on kubernetes.  For local development, you'll want to use the `local` configuration.
+
+An example of its usage: `./infra/mongo/automation/init.ps1 myUsername myPassword local`  .
+
+This will create a mongodb endpoint on your local kubernetes cluster using development settings.  For more information, refer to `infra/mongo/k8s/local.yaml`.
+
+Now that you have a mongodb endpoint, you can create new api projects with the `-mongo` flag.
+
+### The `-mongo` Flag ###
+When you create a new API project, you can optionally bootstrap it with mongodb integration using the `-mongo` flag.  
+
+Example:
+```
+new-wcproject my-endpoint api -mongo
+```
+Assuming you have mongodb already initialized in your kubernetes cluster, using this flag will do the the following every time you `start-wcproject <projectName>`:
+
+1. Check to see if unique credentials for your API already exist.  If so, it skips to step 4.
+1. Create new credentials that will server as your microservice's username and password pair for mongodb.  The username will be of the format `<projectName>_user`, and the password will be a randomly-generated 200-character-long alphanumeric string.
+1. Deploy these credentials to kubernetes as a "Basic Auth" Secret.
+1. Check to see if mongodb already has a user named `<projectName>_user`.  If not, create the user using the username/password pair created in step 2.
+5. Check to see if a database that matches `<projectName>` already exists.  If not, create the database and give `<projectName>_user` read/write access to it.
+6. Build `<projectName>` and place it in a container.  
+7. Push the container to kind.
+8. Deploy a configuration YAML file to the kind control plane, which takes the username/password pair stored in kubernetes and exposes it as environment variables `MONGO_USERNAME` and `MONGO_PASSWORD`.  (Use `process.env` in nodeJS to create your mongodb connection in your code.)
+
+
 ## Why 'wc'? ##
 This was originally just a framework for web components, but I got owned by scope creep. `¯\_(ツ)_/¯`
