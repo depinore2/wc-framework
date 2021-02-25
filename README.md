@@ -50,10 +50,10 @@ This framework support 4 project types out of the box:
 
 |Type|Description|
 |---|---|
-lib|A portable class library project, intended for use in other projects.|
+|lib|A portable class library project, intended for use in other projects.|
 |test|A unit test project scaffolded to use the mocha library.|
-api|An expressJS project.|
-ui|A Web Components SPA project.|
+|api|An expressJS project.|
+|ui|A Web Components SPA project.|
 
 ## Building Projects ##
 To build a project use `Build-Wcproject [projectName]`.  If you don't provide a projectName, it will build all projects.  When you build a wcproject, the following occurs:
