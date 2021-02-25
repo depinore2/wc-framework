@@ -73,10 +73,10 @@ This framework support 4 project types out of the box:
 
 |Type|Behavior|
 |---|---|
-lib|Not runnable.|
+|lib|Not runnable.|
 |test|Runs all tests, by executing `npm run test`.|
-api|Builds TypeScript, Builds `nodeJS:slim` Docker Container, deploys to kind.|
-ui|Builds TypeScript, Builds an `nginx` Docker Container, deploys to kind.|
+|api|Builds TypeScript, Builds `nodeJS:slim` Docker Container, deploys to kind.|
+|ui|Builds TypeScript, Builds an `nginx` Docker Container, deploys to kind.|
 
 API and UI projects come with kubernetes manifest files pre-configured to deploy to `http://localhost/<project-name>` when you run it.
 
