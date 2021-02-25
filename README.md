@@ -74,7 +74,7 @@ This framework support 4 project types out of the box:
 |Type|Behavior|
 |---|---|
 lib|Not runnable.|
-|test|Runs all tests.|
+|test|Runs all tests, by executing `npm run test`.|
 api|Builds TypeScript, Builds `nodeJS:slim` Docker Container, deploys to kind.|
 ui|Builds TypeScript, Builds an `nginx` Docker Container, deploys to kind.|
 
@@ -285,6 +285,31 @@ When you build `my-project`, the resulting ts_module structure will be:
 ## Powershell Cmdlet Help ##
 After importing the wc powershell module, please acquaint yourself with the various commands using `get-help` ([Microsoft Documentation](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-help?view=powershell-7.1)).
 The most commonly-used commands are `start-wcproject`, `new-wcproject`, `watch-wcproject`, and `remove-wcproject`.  Start there!
+
+## Automation Hooks ##
+`build-wcproject` and `start-wcproject` support the ability to inject cutom automation before and after the build and "start" steps of the automation pipeline.  
+
+The events are all named in a self-explanatory way:
+* preBuild - Runs before the build step.
+* postBuild - Runs after the build step.
+* preStart - Runs before deploying and starting the application on your k8s cluster.
+* postStart - Runs afer having deployed to kubernetes. 
+
+To create your own, you just need to add a powershell file in your project's automation folder with the name of the event.  For example, to run some custom post-build automation in your `test-project`, place a file called `postBuild.ps1` in `path/to/solution/src/test-project/automation/postBuild.ps1`.
+
+For example, this is what an API project looks like after having scaffolded it:
+```
+- automation/
+  - addMongoCreds.ps1
+  - postBuild.ps1
+  - postStart.ps1
+  - preBuild.ps1
+  - preStart.ps1
+  - publish.ps1
+- k8s/ 
+  - ...
+...
+```
 
 ## MongoDB Integration ##
 This framework comes with some mongodb integration out of the box.  
