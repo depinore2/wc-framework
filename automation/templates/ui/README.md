@@ -21,3 +21,8 @@ Dockerfile used to build your local UI image.  The UI application is hosted in a
 
 ### Dockerfile_prod ###
 The same as the regular Dockerfile, although it expects your static content to have been gzipped by a prior build step. Refer to automation/publish.ps1 for more information.
+
+### Prodassets ###
+Only assets defined in your project's sln.json prodAssets field will be included in the final production build.  This is to avoid bloated node_modules folders and the like.
+If adding a new folder outside of what's already included in the out of the box template, please make sure to refer to your sln.json and ensure that the prodAssets is configured
+to your needs.
