@@ -634,9 +634,14 @@
             throw "Unable to find $prodAssetPath, which is specified as a prodAsset.  (Did you forget to build your project?)"
           }
           else {
-            $fqExportLocation = (resolve-path $exportLocation).path;
+            $_fqExportLocation = (resolve-path $exportLocation).path;
+            $fqExportLocation = "$_fqExportLocation/$(split-path $prodasset)"
             Write-Host "$prodassetpath --> $fqExportLocation";
-            copy-item $prodassetPath $fqExportLocation -recurse;
+
+            if(!(test-path $fqExportLocation)) {
+              mkdir -p $fqExportLocation;
+            }
+            copy-item $prodassetPath $fqExportLocation -recurse -force;
           }
         }
 
