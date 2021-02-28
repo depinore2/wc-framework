@@ -141,33 +141,43 @@
                 foreach-object { 
                   Write-Host "Restoring NPM packages for [$($_.name)]."
                   set-location $_.path; 
-                  $packages = get-missingnpmpackages $_.name;
-                  if($packages.Count -gt 0) {
-                    # npm i --loglevel error; 
-                    $cmd = "npm i $([string]::Join(' ', $packages)) --no-save --loglevel error";
-                    write-host $cmd
-                    invoke-expression $cmd;
-                  }
+                  npm i; 
                 }
 
     set-location $startLocation;
   }
-  function Get-NpmPackages([string][Parameter(Mandatory=$true)]$projectName, [ScriptBlock]$packageListCommand) {
+  function Get-InstalledNpmPackages([string][Parameter(Mandatory=$true)]$projectName) {
     $startLocation = get-location;
     cd (get-absoluteprojectpath $projectName);
 
-    $output = &$packageListCommand | 
+    $packages = ((npm ls --silent) + (npm ls -dev --silent)) | where { $_ -notmatch 'UNMET' };
+    $output = $packages | 
       % { -split $_ } |
       where { $_ -match '@' }
     
     cd $startLocation;
-    $output;
+    $output | sort-object | get-unique;
   }
-  function Get-InstalledNpmPackages([string][Parameter(Mandatory=$true)]$projectName) {
-    get-npmpackages $projectName { ((npm ls --silent) + (npm ls -dev --silent)) | where { $_ -notmatch 'UNMET' } }
-  }
-  function Get-MissingNpmPackages([string][Parameter(Mandatory=$true)]$projectName) {
-    get-npmpackages $projectName { ((npm ls --silent) + (npm ls -dev --silent)) | where { $_ -match 'UNMET' } }
+  function Get-MissingTsModuleNpmPackages([string]$thisProjectName, [string[]]$tsModuleNames) {
+    $nodeModules = @();
+    $installedNpmPackages = get-installedNpmPackages $thisProjectName;
+
+    foreach($dependency in $tsModuleNames) {
+      $packageJsonPath = "$(get-absoluteprojectpath $dependency)/package.json";
+      $packageJson = get-content $packageJsonPath | convertfrom-json;
+      foreach($dep in ($packageJson.dependencies.PSObject.Properties + $packageJson.devDependencies.PSObject.Properties)) {
+        $nodeModules += "$($dep.Name)@$($dep.Value.Replace('^',''))";
+      }
+    }
+
+    $finalResult = @();
+
+    foreach($module in ($nodeModules | get-unique | sort-object)) {
+      if(!($installedNpmPackages -contains $module)) {
+        $finalResult += $module;
+      }
+    }
+    $finalResult;
   }
   function Restore-TsModules([string]$projectName, [switch]$skipNpm, [switch]$verbose) {
     $sln = get-wcsln;
@@ -196,10 +206,20 @@
         remove-item $destination -recurse -force -erroraction silentlycontinue;
         new-item -ItemType Directory $destination -erroraction SilentlyContinue | out-null;
 
-        $installedNpmPackages = @() 
         if(!$skipNpm) {
-          $installedNpmPackages = get-installednpmpackages $project.name;
           restore-npm $project.name;
+
+          $missingTsModuleNpmPackages = get-missingtsmodulenpmpackages $project.name ($dependencies | where { $_.GetType().Name -eq 'String' });
+
+          if($missingTsModuleNpmPackages.Count -gt 0) {
+            $currentLocation = get-location;
+            set-location $thisProjectPath;
+            $command = "npm i $([string]::Join(' ', $missingTsModuleNpmPackages)) --no-save --no-package-lock";
+            Write-Host "Restoring tsmodules npm packages."
+            Write-Host $command;
+            Invoke-Expression $command;
+            set-location $currentLocation;
+          }
         }
 
         foreach($dependency in $dependencies) {
@@ -240,33 +260,6 @@
               New-Item -itemtype file -path $fileDestination -force | out-null;
             }
             copy-item $source $fileDestination -force -recurse
-          }
-
-          if($skipNpm) {
-            Write-Warning "Skipping node_modules import.";
-          }
-          else {
-            if($dependency.GetType().Name -eq 'string') {
-              $packageJsonPath = "$(get-absoluteprojectpath $dependency)/package.json";
-              $packageJson = get-content $packageJsonPath | convertfrom-json;
-              $nodeModules = @();
-              foreach($dep in ($packageJson.dependencies.PSObject.Properties + $packageJson.devDependencies.PSObject.Properties)) {
-                $depString = "$($dep.Name)@$($dep.Value)";
-                if(!$installedNpmPackages -contains $depString) {
-                  $nodeModules += $depString;
-                }
-              }
-
-              if($nodeModules.Count -gt 0) {
-                Write-Host "Installing $($nodeModules.Length) [$dependency] node_modules in [$projectName]."
-                $currentLocation = get-location;
-                set-location $thisProjectPath;
-                $command = "npm i $([string]::Join(' ', $nodeModules)) --no-save";
-                Write-Host $command;
-                Invoke-Expression $command;
-                set-location $currentLocation;
-              }
-            }
           }
         }
 
@@ -507,9 +500,6 @@
     $projects = if($projectName) { @(get-wcproject $projectName) } else { (get-wcsln).Projects };
 
     foreach($project in [array]($projects)) {
-      if(!$skipnpm) {
-        restore-npm $project.name;
-      }
       restore-tsmodules $project.name -skipnpm:$skipnpm;
 
       $projectPath = get-absoluteprojectpath $project.name;
@@ -713,7 +703,7 @@
         while($true) {
           get-childitem -recurse -path $path -exclude '*.d.ts','.*.d.ts.map','*.js' |
             select -expandproperty fullname |
-            entr -d -s "pwsh -c 'import-module $psscriptroot/wc.psm1; build-wcproject $($project.name) -skipcontainer; sync-devpod $($project.name)'"
+            entr -d -s "pwsh -c 'import-module $psscriptroot/wc.psm1; build-wcproject $($project.name) -skipcontainer -skipnpm; sync-devpod $($project.name)'"
         }
       }
       else {
@@ -815,4 +805,4 @@
     }
   }
 
-  Export-ModuleMember New-WcProject, Watch-Wcproject, Connect-WcProject, Remove-Wcproject, Disconnect-WcProject, Get-WcSln, Restore-WcProject, Restore-Npm, Restore-TsModules, Build-WcProject, Get-WcProject, Export-ProdAssets, Start-WcProject, Clear-WcProject, Get-KubernetesResources, Add-MongoSecrets, Sync-DevPod, Get-InstalledNpmPackages, Get-MissingNpmPackages;
+  Export-ModuleMember New-WcProject, Get-TsDependencies, Watch-Wcproject, Connect-WcProject, Remove-Wcproject, Disconnect-WcProject, Get-WcSln, Restore-WcProject, Restore-Npm, Restore-TsModules, Build-WcProject, Get-WcProject, Export-ProdAssets, Start-WcProject, Clear-WcProject, Get-KubernetesResources, Add-MongoSecrets, Sync-DevPod, Get-InstalledNpmPackages,  get-missingtsmodulenpmpackages;
