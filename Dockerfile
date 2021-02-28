@@ -12,3 +12,4 @@ RUN pwsh -File "/src/automation/tools/install-kubectl.ps1"
 RUN pwsh -File "/src/automation/tools/install-node.ps1"
 RUN pwsh -File "/src/automation/tools/install-psmodules.ps1"
 COPY . src
+COPY ./powershellProfile.ps1 /root/.config/powershell/Microsoft.PowerShell_profile.ps1
