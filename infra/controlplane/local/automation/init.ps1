@@ -12,7 +12,7 @@ else {
 $hostip = /sbin/ip route|awk '/default/ { print $3 }'
 Write-Host "Determined that the host of this workstation container has IP: $hostip"
 
-$configLocation = '~/.kube/config';
+$configLocation = "$psscriptroot/../../../../kubeconfig";
 
 Write-Host "Updating the configuration of $configLocation to allow for this workstation computer to communicate with the kind cluster hosted on this image's host ($hostip)."
 $kubeConfig = get-content $configLocation | convertfrom-yaml

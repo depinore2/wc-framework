@@ -87,3 +87,4 @@ typings/
 
 !automation/get-ts-deps.js
 !automation/update-ts-refs.js
+kubeconfig
