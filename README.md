@@ -37,7 +37,7 @@ Ok, let's go!
 7. Start a `pwsh` terminal. All framework tooling is implemented using Powershell, so it's time to get comfortable with it. 
 8. Spin up a brand new kubernetes control plane by executing: `./src/controlplane/local/automation/new-cluster.ps1`.  This uses Kubernetes In Docker (aka "[kind](https://kind.sigs.k8s.io/)").
 9. Wait some more...
-10. Your primary framework toolset can be found in the `wc` Powershell Module. Load the module by executing `import-module ./automation/wc` from the root of the repo.
+10. Your primary framework toolset can be found in the `wc` Powershell Module. It should be automatically loaded thanks to powershellProfile.ps1.  Verify by executing `get-command -module wc`.  If not, you can load the module manually using `import-module ./automation/wc.psm1`.
 11. Create a new UI project called test-drive by executing: `new-wcproject test-drive ui`.
 12. Build it and deploy it to kubernetes by running `start-wcproject test-drive`
 13. Navigate to http://localhost/test-drive .  You can optionally also use https and agree to the warnings issued by your browser.  You should see a demo SPA page saying It Works!
