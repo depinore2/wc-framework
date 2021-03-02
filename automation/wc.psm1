@@ -99,6 +99,10 @@
     $runnableTypes -contains $type;
   }
   function Get-TsDependencies($project) {
+    <#
+    .SYNOPSIS
+      Identifies which ts_modules dependencies a project has.
+    #>
     $deps = $project.ts_modules;
 
     foreach($dep in $deps) {
@@ -128,7 +132,7 @@
   function Restore-Npm([string]$projectName) {
     <#
       .SYNOPSIS
-        Restores all npm packages for a project and its ts_module references.
+        Restores all npm packages for a project.  If no projectName is provided, it will restore the entire solution's NPM packages.
     #>
     $startLocation = get-location;
 
@@ -147,6 +151,10 @@
     set-location $startLocation;
   }
   function Get-InstalledNpmPackages([string][Parameter(Mandatory=$true)]$projectName) {
+    <#
+      .DESCRIPTION
+        Determines which NPM packages are already on disk for a given project.
+    #>
     $startLocation = get-location;
     cd (get-absoluteprojectpath $projectName);
 
@@ -179,7 +187,20 @@
     }
     $finalResult;
   }
-  function Restore-TsModules([string]$projectName, [switch]$skipNpm, [switch]$verbose) {
+
+  function Restore-WcProject {
+    <#
+      .SYNOPSIS
+        Restores all NPM and ts_references for a project.  If no project is provided, will run a restore operation on the entire solution.
+    #>
+    param(
+      # The name of the project to restore.  If not provided, the whole solution will be restored.
+      [string]$projectName, 
+      # If this flag is provided, it will not invoke npm operations.  Speeds things up, but at the expense of not picking up npm changes.
+      [switch]$skipNpm, 
+      # Use this if you're trying to troubleshoot something.
+      [switch]$verbose
+    )
     $sln = get-wcsln;
 
     $projects = $(if($projectName) { get-wcproject $projectname } else { $sln.projects });
@@ -273,19 +294,6 @@
         Write-Output "[$($project.name)] has no ts_modules dependencies.  Skipping."
         mkdir $destination
       }
-    }
-  }
-
-  function Restore-WcProject([string]$projectName) {
-    <#
-      .SYNOPSIS
-        Restores all NPM and ts_references for a project.  If no project is provided, will run a restore operation on the entire solution.
-    #>
-    $projects = $projects = if($projectName) { @(get-wcproject $projectName) } else { (get-wcsln).Projects };
-
-    foreach($project in $projects) {
-      restore-npm $project.name;
-      restore-tsmodules $project.name -skipnpm;
     }
   }
 
@@ -426,8 +434,7 @@
         }
       }
 
-      restore-npm $projectName;
-      restore-tsmodules $projectName;
+      restore-wcproject $projectName;
 
       if($type -eq 'api') {
         if($mongo) {
@@ -445,6 +452,10 @@
   }
 
   function Clear-WcProject([string]$projectName) {
+    <#
+      .DESCRIPTION
+        Cleans out build artifacts from your project or entire solution.
+    #>
     $projects = if($projectName) { @(get-wcproject $projectName) } else { (get-wcsln).Projects };
 
     foreach($project in [array]($projects)) {
@@ -457,6 +468,10 @@
   }
 
   function Sync-DevPod([string]$projectName) {
+    <#
+      .DESCRIPTION
+        Takes your API or UI's artifacts and pushes them to its associated kubernetes pod without reloading the pod.  Used internally by watch-wcproject.
+    #>
     $project = get-wcproject $projectName;
     if($project) {
       $source = get-absoluteprojectpath $project.Name;
@@ -496,11 +511,31 @@
   }
 
   $defaultBuildNumber = '--buildnumber--';
-  function Build-WcProject([string]$projectName, [switch]$compat, [switch]$optimize, [int32]$msPauseForIO = 0, [switch]$skipNpm, $dockerfile, [switch]$skipContainer, [ScriptBlock]$preContainerActions) {
+  function Build-WcProject {
+    <#
+      .SYNOPSIS
+        Builds your project and packages it into a Docker container if a UI or API project.
+    #>
+    param(
+      # The name of the project to build.  If not provided, the whole solution will be built.
+      [string]$projectName, 
+      # If provided, a compatibility build will be included alongside your regular build.  Use this if you need to support old browsers like Internet Explorer.
+      [switch]$compat, 
+      # Using this flag will minify your code, strip out any comments, and remove any sourcemaps.  Only for UI projects.
+      [switch]$optimize, 
+      # Using this flag will skip running npm operations.  This will speed up the process, at the expense of not updating all of your packages.
+      [switch]$skipNpm, 
+      # Optionally provide a custom dockerfile.  If not provided, it will use "Dockerfile" at the root of your project directory.
+      $dockerfile, 
+      # Optionally skip packaging your built assets into a container.
+      [switch]$skipContainer, 
+      # Optional ScriptBlock that allows you to define custom behavior after building but before packaging into a container.  Ignored if -skipContainer is provided.
+      [ScriptBlock]$preContainerActions
+    )
     $projects = if($projectName) { @(get-wcproject $projectName) } else { (get-wcsln).Projects };
 
     foreach($project in [array]($projects)) {
-      restore-tsmodules $project.name -skipnpm:$skipnpm;
+      restore-wcproject $project.name -skipnpm:$skipnpm;
 
       $projectPath = get-absoluteprojectpath $project.name;
       if(IsValidProjectType $project.type) {
@@ -552,14 +587,12 @@
           foreach($compilation in $compilations) {
             Write-Host "- Running tsc for [$($compilation.name)]."
             & "$projectPath/node_modules/.bin/tsc$cmdExtension" -p $compilation.tsConfig;
-            Start-Sleep -Milliseconds $msPauseForIO; # need this here because containers are delicate.
             if($lastexitcode -ne 0) {
               throw "tsc command exited with exit code $lastexitcode.";
             }
 
             Write-Host "- Running browserify for [$($compilation.name)] into $($compilation.outFile)";
             & "$projectPath/node_modules/.bin/browserify$cmdExtension" "$projectPath/src/index.js" --outfile $compilation.outFile $(if(!$optimize) { "--debug" });
-            Start-Sleep -Milliseconds $msPauseForIO; # need this here because containers are delicate.
 
             if($optimize) {
               Write-Host "- Running uglify for [$($compilation.name)] on $($compilation.outFile).";
@@ -590,7 +623,30 @@
     }
   }
 
-  function Export-ProdAssets([parameter(Mandatory=$true)][string]$projectName, $buildNumber = (get-date).Ticks, [string]$environment = 'prod', [switch]$gzip) {
+  function Export-ProdAssets {
+    <#
+      .SYNOPSIS
+        Takes your built UI project and packages it up for production.  Use in Build-Wcproject in conjunction with the -Dockerfile and -PrebuildActions parameters.
+      .DESCRIPTION
+        Takes all of the assets in your dist folder and then prepares it for production use.  This includes replacing any instance of "build_number" in your source code and replacing it with a build.
+        Also will insert a "build_environment" global javascript variable in your root index.html.
+
+        Finally, ensures that only non-development NPM packages are present, and strips out any artifacts that are not registered in your project's prodAssets in sln.json.
+
+        Only for UI projects.
+      .EXAMPLE
+        Build-WcProject my-project -dockerfile Dockerfile_prod -optimize -preContainerActions { Export-ProdAssets my-project -gzip }
+    #>
+    param(
+      # The name of your project.
+      [parameter(Mandatory=$true)][string]$projectName, 
+      # Optionally provide a custom build number.  If not provided, it will get the current time in UTC Ticks.
+      $buildNumber = (get-date).Ticks, 
+      # Optionally provide a build environment name.  Defaults to 'prod'.
+      [string]$environment = 'prod', 
+      # Optionally gzip all of your artifacts.  It is highly recommended to gzip your assets at build time such as now rather than relying on your HTTP server to dynamically gzip for you.
+      [switch]$gzip
+    )
     $project = get-wcproject $projectName;
     if($project) {
       if($project.type -ne 'ui' -or !($project.prodassets)) {
@@ -690,16 +746,17 @@
   function Create-ProjectPrefix($projectName) {
     "wc_$((get-wcsln).Name)_$($projectName)";
   }
-  <#
-  .SYNOPSIS
-    Watches a project for changes and auto-updates its corresponding container in your local development cluster.
-  .DESCRIPTION
-    Uses the command-line tool entr to watch for file changes.  Excludes watching .d.ts, .d.ts.map, and .js files.
-    When a change is detected, it will rebuild your wcproject and sync the file changes with your container.
-  .PARAMETER projectName
-    The name of the project to watch.  Only API and UI projects are supported.
-  #>
+ 
   function Watch-Wcproject([string][parameter(Mandatory=$true)]$projectName) {
+     <#
+      .SYNOPSIS
+        Watches a project for changes and auto-updates its corresponding container in your local development cluster.
+      .DESCRIPTION
+        Uses the command-line tool entr to watch for file changes.  Excludes watching .d.ts, .d.ts.map, and .js files.
+        When a change is detected, it will rebuild your wcproject and sync the file changes with your container.
+      .PARAMETER projectName
+        The name of the project to watch.  Only API and UI projects are supported.
+    #>
     $project = get-wcproject $projectName;
 
     if($project) {
@@ -716,7 +773,19 @@
       }
     }
   }
-  function Start-WcProject([parameter(Mandatory=$true)]$projectName, [switch]$skipBuild, $customBuildBlock) {
+  function Start-WcProject {
+    <#
+      .DESCRIPTION
+        Builds, packages, and pushes your API or UI project to the local kubernetes cluster (kind).
+    #>
+    param(
+      # The name of your project.
+      [parameter(Mandatory=$true)]$projectName, 
+      # If you just need to deploy your assets to kind without rebuilding it, provide this flag.
+      [switch]$skipBuild, 
+      # If you have any custom behavior that you'd like to execute INSTEAD OF "build-wcproject $projectName", provide that here.  Ignored if -skipBuild is provided.
+      $customBuildBlock
+    )
     $project = get-wcproject $projectName;
 
     if($project) {
@@ -810,4 +879,4 @@
     }
   }
 
-  Export-ModuleMember New-WcProject, Get-TsDependencies, Watch-Wcproject, Connect-WcProject, Remove-Wcproject, Disconnect-WcProject, Get-WcSln, Restore-WcProject, Restore-Npm, Restore-TsModules, Build-WcProject, Get-WcProject, Export-ProdAssets, Start-WcProject, Clear-WcProject, Get-KubernetesResources, Add-MongoSecrets, Sync-DevPod, Get-InstalledNpmPackages,  get-missingtsmodulenpmpackages;
+  Export-ModuleMember New-WcProject, Get-TsDependencies, Watch-Wcproject, Connect-WcProject, Remove-Wcproject, Disconnect-WcProject, Get-WcSln, Restore-WcProject, Restore-Npm, Build-WcProject, Get-WcProject, Export-ProdAssets, Start-WcProject, Clear-WcProject, Add-MongoSecrets, Sync-DevPod, Get-InstalledNpmPackages;
