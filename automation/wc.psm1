@@ -206,6 +206,9 @@
     $projects = $(if($projectName) { get-wcproject $projectname } else { $sln.projects });
 
     foreach($project in $projects) { 
+      if(!$skipnpm) {
+        restore-npm $project.name;
+      }
       Write-Output "====Restoring TS Modules for [$($project.name)]===="
 
       $destination = "$(get-absoluteprojectpath $project.name)/ts_modules";
@@ -228,8 +231,6 @@
         new-item -ItemType Directory $destination -erroraction SilentlyContinue | out-null;
 
         if(!$skipNpm) {
-          restore-npm $project.name;
-
           $missingTsModuleNpmPackages = get-missingtsmodulenpmpackages $project.name ($dependencies | where { $_.GetType().Name -eq 'String' });
 
           if($missingTsModuleNpmPackages.Count -gt 0) {
