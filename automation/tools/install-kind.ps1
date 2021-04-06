@@ -1,5 +1,5 @@
-apt-get install wget -y;
+apt-get install curl ca-certificates -y;
 
-wget https://kind.sigs.k8s.io/dl/v0.9.0/kind-linux-amd64 -O ./kind --no-check-certificate
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.10.0/kind-linux-amd64
 chmod +x ./kind
 mv ./kind /usr/local/bin/kind
