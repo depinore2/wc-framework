@@ -1,6 +1,4 @@
-apt-get install -y apt-transport-https ca-certificates curl -y
-curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
-
-apt-get update
-apt-get install -y kubectl
+$version = (invoke-webrequest https://dl.k8s.io/release/stable.txt).Content
+invoke-webrequest "https://dl.k8s.io/release/$version/bin/linux/amd64/kubectl" -outfile kubectl
+install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+rm kubectl
