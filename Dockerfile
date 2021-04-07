@@ -3,6 +3,7 @@ FROM mcr.microsoft.com/powershell
 ENV TZ=America/Los_Angeles
 
 RUN apt update
+RUN apt-get install ca-certificates -y
 COPY ./automation /src/automation
 RUN pwsh -File "/src/automation/tools/install-docker.ps1"
 RUN pwsh -File "/src/automation/tools/install-entr.ps1"
