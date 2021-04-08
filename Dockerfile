@@ -4,7 +4,10 @@ ENV TZ=America/Los_Angeles
 
 RUN apt update
 RUN apt-get install ca-certificates -y
+RUN apt update
+
 COPY ./automation /src/automation
+RUN pwsh -File "/src/automation/tools/install-iproute2.ps1"
 RUN pwsh -File "/src/automation/tools/install-docker.ps1"
 RUN pwsh -File "/src/automation/tools/install-entr.ps1"
 RUN pwsh -File "/src/automation/tools/install-git.ps1"
