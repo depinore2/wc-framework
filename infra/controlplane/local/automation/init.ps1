@@ -9,7 +9,7 @@ else {
     Write-Host "$clusterName already exists, skipping creation of cluster.";
 }
 
-$hostip = /sbin/ip route|awk '/default/ { print $3 }'
+$hostip = ip route|awk '/default/ { print $3 }'
 Write-Host "Determined that the host of this workstation container has IP: $hostip"
 
 $configLocation = "$psscriptroot/../../../../kubeconfig";
