@@ -382,7 +382,7 @@
     [string]$type = 'lib', 
     # Optionally integrate with mongoDB.  API projects only.
     [switch]$mongo, 
-    # Optionally specify a port between 30000 and 31000 to use on your kind cluster for debugging.  If not specified, will analyze /.vscode/launch.json and auto-increment.  API projects only. 
+    # Optionally specify a port between 30000 and 30200 to use on your kind cluster for debugging.  If not specified, will analyze /.vscode/launch.json and auto-increment.  API projects only. 
     [int32]$debugPort = -1
   ) {
     <#
@@ -401,15 +401,15 @@
         Detail on what the script does, if this is needed.
 
     #>
-    if($debugPort -gt -1 -and ($debugPort -lt 30000 -or $debugPort -gt 31000)) {
-      throw "If provided, debugPort must be between 30000 and 31000 inclusive."
+    if($debugPort -gt -1 -and ($debugPort -lt 30000 -or $debugPort -gt 30200)) {
+      throw "If provided, debugPort must be between 30000 and 30200 inclusive."
     }
 
     if(!(IsValidProjectType $type)) {
       Write-Error "Project type is not valid.  Must be one of: $([string]::join(', ', $projectTypes))."
     }
     else {
-      if(($debugPort -lt 30000 -or $debugPort -gt 31000) -and $type -eq 'api') {
+      if(($debugPort -lt 30000 -or $debugPort -gt 30200) -and $type -eq 'api') {
         initialize-launchjson;
         $debugPort = get-nextapidebugport;
         Write-Host "Defaulting debugPort for $projectName to $debugPort."
