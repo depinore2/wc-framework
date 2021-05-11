@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        // to avoid any js/css issues, ensure that the browser is pointing to either a file or has a trailing slash.
+        if(!/(\/|\..*)$/.test(window.location.pathname)) {
+            window.location.pathname += '/';
+        }
+    </script>
+    
     <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
