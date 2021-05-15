@@ -17,16 +17,16 @@
   "homepage": "https://github.com/depinore/web-components-starter#readme",
   "devDependencies": {
     "browserify": "16.2.3",
-    "http-server": "0.11.1",
+    "http-server": "^0.12.3",
     "typescript": "3.2.2",
     "uglify-es": "3.3.9",
     "watchify": "^3.11.1"
   },
   "dependencies": {
-    "@depinore/wclibrary": "github:depinore/wclibrary",
+    "@depinore/wclibrary": "github:depinore2/wclibrary",
     "@prepair/routie": "1.0.3",
     "@webcomponents/webcomponentsjs": "2.2.1",
-    "dompurify": "1.0.8",
+    "dompurify": "2.2.8",
     "es6-promise": "4.2.5",
     "express": "^4.16.4",
     "whatwg-fetch": "3.0.0"
