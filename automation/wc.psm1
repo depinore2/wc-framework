@@ -246,6 +246,7 @@
 
         foreach($dependency in $dependencies) {
           if($dependency.GetType().Name -eq 'string') {
+            restore-wcproject $dependency -skipnpm:$skipnpm -verbose:$verbose;
             $operation = @{
               from = "$(get-absoluteprojectpath $dependency)/src";
               pattern = "*.ts";
