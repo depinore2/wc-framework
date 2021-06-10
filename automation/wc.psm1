@@ -763,9 +763,12 @@
 
     if($project) {
       if($project.type -eq 'api' -or $project.type -eq 'ui') {
+        restore-wcproject $project.name;
+
         $path = get-absoluteprojectpath $project.name;
         while($true) {
-          get-childitem -recurse -path $path -exclude '*.d.ts','.*.d.ts.map','*.js' |
+          get-childitem -recurse -path $path -exclude '*.d.ts','.*.d.ts.map','*.js' -file |
+            where { $_.fullname -notmatch 'node_modules' } |
             select -expandproperty fullname |
             entr -d -s "pwsh -c 'import-module $psscriptroot/wc.psm1; build-wcproject $($project.name) -skipcontainer -skipnpm; sync-devpod $($project.name)'"
         }
