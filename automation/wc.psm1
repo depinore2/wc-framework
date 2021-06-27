@@ -543,7 +543,7 @@
       if(IsValidProjectType $project.type) {
         function BasicCompile() {
           Write-Output "====Compiling TypeScript===="
-          & "$projectpath/node_modules/.bin/tsc$cmdExtension" -p "$projectPath/tsconfig.json" --incremental;
+          & "$projectpath/node_modules/.bin/tsc$cmdExtension" -p "$projectPath/tsconfig.json";
           
           if($lastExitCode -ne 0) {
             throw "tsc exited with a non-zero exit code.";
