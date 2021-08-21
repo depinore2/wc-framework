@@ -246,7 +246,7 @@
 
         foreach($dependency in $dependencies) {
           if($dependency.GetType().Name -eq 'string') {
-            restore-wcproject $dependency -skipnpm:$skipnpm -verbose:$verbose;
+            #restore-wcproject $dependency -skipnpm -verbose:$verbose;
             $operation = @{
               from = "$(get-absoluteprojectpath $dependency)/src";
               pattern = "*.ts";
@@ -466,6 +466,7 @@
       remove-item "$path/ts_modules" -recurse -force -erroraction silentlycontinue;
       remove-item "$path/dist" -recurse -force -erroraction silentlycontinue;
       get-childitem "*.js.*" -recurse -path "$path/src" | remove-item -recurse -force
+      get-childitem '*.tsbuildinfo' -recurse -path $path | remove-item -recurse -force
     }
   }
 
@@ -748,7 +749,52 @@
   function Create-ProjectPrefix($projectName) {
     "wc_$((get-wcsln).Name)_$($projectName)";
   }
- 
+  function Get-ProjectNameFromPath($path) {
+    $path -replace "$psscriptroot/../src/(.*?)/.*",'$1';
+  }
+  function Expand-Dependency($thisProjectName, $dependency) {
+    $thisProjectPath = get-absoluteprojectpath $thisProjectName;
+    if($dependency.GetType().Name -eq 'string') {
+      $from = "$(get-absoluteprojectpath $dependency)/src";
+      @{
+        from = $from;
+        pattern = "*.ts";
+        recurse = $true;
+        exclude = "*.d.ts";
+        to = "$thisProjectPath/ts_modules/$dependency/";
+        sourceProject = (get-projectnamefrompath $from);
+      }
+    }
+    else {
+      $from = (resolve-path "$thisProjectPath/$($dependency.from)").Path;
+      @{
+        from = $from;
+        sourceProject = (get-projectnamefrompath $from)
+        pattern = $dependency.pattern;
+        to = "$thisProjectPath/ts_modules/$($dependency.to)/";
+        recurse = if($dependency.recurse -eq $null) { $false } else { $dependency.recurse };
+        exclude = $dependency.exclude;
+      }
+    }
+  }
+  function Get-WatchScope($projectName, $expandedDependencies) {
+    $projectsInvolved = @($projectName);
+    $projectsInvolved += $expandedDependencies | select -expandproperty sourceProject
+
+    $projectsInvolved | sort-object | get-unique;
+  }
+  function Get-WatchFiles($watchProjects) {
+      $watchProjects | % { 
+        if($_ -match '/') {
+          $_;
+        }
+        else {
+          get-absoluteprojectpath $_ 
+        }
+      } | % { get-childitem -recurse -path $_ -exclude '*.d.ts','.*.d.ts.map','*.js' -file } |
+          where { $_.fullname -notmatch 'node_modules' } |
+          select -expandproperty fullname
+  }
   function Watch-Wcproject([string][parameter(Mandatory=$true)]$projectName) {
      <#
       .SYNOPSIS
@@ -763,14 +809,11 @@
 
     if($project) {
       if($project.type -eq 'api' -or $project.type -eq 'ui') {
-        restore-wcproject $project.name;
+        $watchedProjects = get-watchscope $projectName (get-tsdependencies (get-wcproject $projectName) | % { expand-dependency $projectName $_ })
+        $watchedProjects | % { restore-wcproject $_ }
 
-        $path = get-absoluteprojectpath $project.name;
         while($true) {
-          get-childitem -recurse -path $path -exclude '*.d.ts','.*.d.ts.map','*.js' -file |
-            where { $_.fullname -notmatch 'node_modules' } |
-            select -expandproperty fullname |
-            entr -d -s "pwsh -c 'import-module $psscriptroot/wc.psm1; build-wcproject $($project.name) -skipcontainer -skipnpm; sync-devpod $($project.name)'"
+          get-watchfiles $watchedProjects | entr -d -s "pwsh -c 'import-module $psscriptroot/wc.psm1; build-wcproject $($project.name) -skipcontainer -skipnpm; sync-devpod $($project.name); Write-Host $scopeMessage'"
         }
       }
       else {
