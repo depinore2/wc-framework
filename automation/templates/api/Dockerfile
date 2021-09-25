@@ -8,4 +8,4 @@ COPY ./node_modules /app/node_modules
 
 ENV PORT=80
 WORKDIR /app/src
-CMD ["node", "--inspect=0.0.0.0:9229", "."]
+CMD ["nodemon", "--inspect=0.0.0.0:9229", "."]
