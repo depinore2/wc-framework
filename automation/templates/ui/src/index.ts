@@ -20,8 +20,10 @@ export class AppComponent extends BaseWebComponent
             '/view2/:myParameter': myParameter => this.render(`<depinore-step-2 data-value='${this.sanitize(myParameter)}'></depinore-step-2>`)
         })
     }   
+    
+    // Delete the element from DOM to see this get triggered.
     disconnectedCallback() {
-        // Delete the element from DOM to see this get triggered.
+        super.disconnectedCallback(); // always call BaseWebComponent's disconnectedCallback handler.
         alert('The element got removed from the DOM.');
     }
 }
